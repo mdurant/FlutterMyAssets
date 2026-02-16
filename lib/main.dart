@@ -1,8 +1,12 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'core/api/api_client.dart';
+import 'core/api/api_error_helper.dart';
 import 'core/api/auth_api.dart';
 import 'core/api/regions_api.dart';
+import 'features/onboarding/splash_screen.dart';
+import 'features/onboarding/onboarding_screen.dart';
 import 'features/auth/screens/welcome_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart' show RegisterPayload, RegisterScreen;
@@ -10,6 +14,7 @@ import 'features/auth/screens/verify_email_screen.dart';
 import 'features/auth/screens/verify_otp_screen.dart';
 import 'features/auth/screens/password_recovery_screen.dart';
 import 'features/auth/screens/password_reset_screen.dart';
+import 'features/auth/screens/success_reset_screen.dart';
 import 'features/auth/screens/home_screen.dart';
 
 void main() {
@@ -23,7 +28,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = AppTheme.dark;
     return MaterialApp(
-      title: 'FlutterMyAssets',
+      title: 'Me encontraste',
       theme: theme,
       darkTheme: theme,
       themeMode: ThemeMode.dark,
@@ -45,11 +50,38 @@ class _AuthFlowState extends State<AuthFlow> {
   late final AuthApi _authApi = AuthApi(_apiClient);
   late final RegionsApi _regionsApi = RegionsApi(_apiClient);
 
-  void _goToWelcome() {
-    setState(() {});
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => _buildWelcome()),
-      (r) => false,
+  /// splash → onboarding → welcome
+  String _entryStep = 'splash';
+
+  Widget _buildLogin() {
+    return LoginScreen(
+      onLogin: _onLogin,
+      onRequestOtp: _onRequestOtp,
+      onRegister: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => RegisterScreen(
+            onRegister: _onRegister,
+            onLogin: () => Navigator.of(context).pop(),
+            getRegions: _regionsApi.getRegions,
+            getComunas: _regionsApi.getComunas,
+          ),
+        ),
+      ),
+      onPasswordRecovery: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PasswordRecoveryScreen(
+            onSubmit: _onPasswordRecovery,
+            onBackToLogin: () => Navigator.of(context).pop(),
+            onGoToReset: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PasswordResetScreen(
+                  onSubmit: _onPasswordReset,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -57,36 +89,7 @@ class _AuthFlowState extends State<AuthFlow> {
     return WelcomeScreen(
       onGetStarted: () {
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => LoginScreen(
-              onLogin: _onLogin,
-              onRegister: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => RegisterScreen(
-                    onRegister: _onRegister,
-                    onLogin: () => Navigator.of(context).pop(),
-                    getRegions: _regionsApi.getRegions,
-                    getComunas: _regionsApi.getComunas,
-                  ),
-                ),
-              ),
-              onPasswordRecovery: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => PasswordRecoveryScreen(
-                    onSubmit: _onPasswordRecovery,
-                    onBackToLogin: () => Navigator.of(context).pop(),
-                    onGoToReset: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => PasswordResetScreen(
-                          onSubmit: _onPasswordReset,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          MaterialPageRoute(builder: (_) => _buildLogin()),
         );
       },
     );
@@ -106,7 +109,7 @@ class _AuthFlowState extends State<AuthFlow> {
             email: email,
             purpose: 'LOGIN',
             onVerify: (code) => _onVerifyOtp(email, code, 'LOGIN'),
-            onResendOtp: () => _authApi.login(email: email),
+            onResendOtp: () => _authApi.sendLoginOtp(email),
           ),
         ),
       );
@@ -115,11 +118,47 @@ class _AuthFlowState extends State<AuthFlow> {
     }
   }
 
+  /// Solicitar código OTP (POST /auth/send-login-otp). Contrato: FLUTTER-BACKEND-LOGIN-OTP.md.
+  Future<void> _onRequestOtp(String email) async {
+    try {
+      final res = await _authApi.sendLoginOtp(email);
+      if (!mounted) return;
+      if (!res.success) {
+        throw Exception(res.message ?? res.errorCode ?? 'Error al solicitar el código');
+      }
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => VerifyOtpScreen(
+            email: email,
+            purpose: 'LOGIN',
+            onVerify: (code) => _onVerifyOtp(email, code, 'LOGIN'),
+            onResendOtp: () => _authApi.sendLoginOtp(email),
+          ),
+        ),
+      );
+    } on DioException catch (e) {
+      throw Exception(messageForLoginOtpRequest(e));
+    }
+  }
+
   Future<void> _onVerifyOtp(String email, String code, String purpose) async {
-    final res = await _authApi.verifyOtp(email: email, code: code, purpose: purpose);
-    if (!res.success) throw Exception(res.message ?? res.errorCode ?? 'Código inválido');
-    final data = res.data;
-    if (data != null) _saveTokensAndGoHome(data);
+    try {
+      final res = await _authApi.verifyOtp(email: email, code: code, purpose: purpose);
+      if (!res.success) throw Exception(res.message ?? res.errorCode ?? 'Código inválido');
+      final data = res.data;
+      if (!mounted) return;
+      if (data != null && data['accessToken'] != null) {
+        _saveTokensAndGoHome(data);
+      } else {
+        // OTP válido pero backend no devolvió tokens (ej. purpose EMAIL_VERIFY sin auto-login) → ir a bienvenida
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => _buildWelcome()),
+          (route) => route.isFirst,
+        );
+      }
+    } on DioException catch (e) {
+      throw Exception(messageForVerifyOtpError(e));
+    }
   }
 
   void _saveTokensAndGoHome(Map<String, dynamic> data) {
@@ -127,11 +166,12 @@ class _AuthFlowState extends State<AuthFlow> {
     final refresh = data['refreshToken'] as String?;
     if (access != null) _apiClient.setTokens(access: access, refresh: refresh);
     if (!mounted) return;
+    // Mantener AuthFlow en la pila para que el logout tenga context válido
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (_) => HomeScreen(onLogout: _onLogout),
       ),
-      (r) => false,
+      (route) => route.isFirst,
     );
   }
 
@@ -143,7 +183,9 @@ class _AuthFlowState extends State<AuthFlow> {
       } catch (_) {}
     }
     _apiClient.setTokens(access: null, refresh: null);
-    _goToWelcome();
+    if (!mounted) return;
+    // Volver al home (Welcome) sin eliminar AuthFlow
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   Future<void> _onRegister(RegisterPayload payload) async {
@@ -165,20 +207,22 @@ class _AuthFlowState extends State<AuthFlow> {
       MaterialPageRoute(
         builder: (_) => VerifyEmailScreen(
           email: payload.email,
-          onVerify: _onVerifyEmail,
+          onVerify: (token, email) => _onVerifyEmail(token, email),
           onResend: () => _authApi.resendVerifyEmail(payload.email),
         ),
       ),
     );
   }
 
-  Future<void> _onVerifyEmail(String token) async {
+  Future<void> _onVerifyEmail(String token, String email) async {
     final res = await _authApi.verifyEmail(token);
     if (!res.success) throw Exception(res.message ?? res.errorCode ?? 'Token inválido');
     if (!mounted) return;
+    // Tras validar el token, ir a bienvenida para que el usuario inicie sesión (con contraseña o "Iniciar sesión con código").
+    // No mostramos pantalla OTP aquí porque el backend no envía OTP en este flujo; el OTP es solo para login por código.
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => _buildWelcome()),
-      (r) => false,
+      (route) => route.isFirst,
     );
   }
 
@@ -191,11 +235,32 @@ class _AuthFlowState extends State<AuthFlow> {
     final res = await _authApi.passwordReset(token: token, newPassword: newPassword);
     if (!res.success) throw Exception(res.message ?? res.errorCode ?? 'Error');
     if (!mounted) return;
-    Navigator.of(context).popUntil((r) => r.isFirst);
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => SuccessResetScreen(
+          onContinue: () {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => _buildLogin()),
+              (r) => false,
+            );
+          },
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_entryStep == 'splash') {
+      return SplashScreen(
+        onFinish: () => setState(() => _entryStep = 'onboarding'),
+      );
+    }
+    if (_entryStep == 'onboarding') {
+      return OnboardingScreen(
+        onFinish: () => setState(() => _entryStep = 'welcome'),
+      );
+    }
     return _buildWelcome();
   }
 }

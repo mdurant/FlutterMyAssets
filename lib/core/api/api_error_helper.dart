@@ -43,3 +43,41 @@ String apiErrorMessage(Object e) {
   final s = e.toString();
   return s.startsWith('Exception: ') ? s.substring(11) : s;
 }
+
+/// Mensajes para la solicitud de OTP (POST /auth/login solo con email). Ver FLUTTER-BACKEND-LOGIN-OTP.md.
+String messageForLoginOtpRequest(DioException e) {
+  if (e.type != DioExceptionType.badResponse || e.response?.data is! Map) {
+    return messageFromDioException(e);
+  }
+  final data = e.response!.data as Map;
+  final code = data['error'] as String?;
+  final msg = data['message'] as String?;
+  switch (code) {
+    case 'USER_NOT_FOUND':
+      return msg ?? 'No existe una cuenta con ese correo.';
+    case 'EMAIL_SEND_FAILED':
+      return msg ?? 'No se pudo enviar el correo. Intenta más tarde o contacta soporte.';
+    default:
+      return msg ?? messageFromDioException(e);
+  }
+}
+
+/// Mensajes para verificación OTP (POST /auth/verify-otp). Ver FLUTTER-BACKEND-LOGIN-OTP.md.
+String messageForVerifyOtpError(DioException e) {
+  if (e.type != DioExceptionType.badResponse || e.response?.data is! Map) {
+    return messageFromDioException(e);
+  }
+  final data = e.response!.data as Map;
+  final code = data['error'] as String?;
+  final msg = data['message'] as String?;
+  switch (code) {
+    case 'INVALID_OTP':
+      return msg ?? 'Código incorrecto o expirado.';
+    case 'OTP_EXPIRED':
+      return msg ?? 'El código ha expirado. Solicita uno nuevo.';
+    case 'OTP_MAX_ATTEMPTS':
+      return msg ?? 'Demasiados intentos. Solicita un nuevo código.';
+    default:
+      return msg ?? 'Código inválido.';
+  }
+}

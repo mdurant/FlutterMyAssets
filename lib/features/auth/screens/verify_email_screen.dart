@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/api/api_error_helper.dart';
-import '../../../core/theme/app_theme.dart';
-import '../widgets/gradient_button.dart';
+import '../../../core/theme/me_encontraste_palette.dart';
+import '../widgets/auth_scaffold.dart';
+import '../widgets/auth_input_decoration.dart';
+import '../widgets/primary_button.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   const VerifyEmailScreen({
@@ -13,7 +15,8 @@ class VerifyEmailScreen extends StatefulWidget {
   });
 
   final String? email;
-  final Future<void> Function(String token) onVerify;
+  /// Al verificar, se pasa el token y el email (para el flujo OTP posterior).
+  final Future<void> Function(String token, String email) onVerify;
   final Future<void> Function()? onResend;
 
   @override
@@ -63,7 +66,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     }
     setState(() => _loading = true);
     try {
-      await widget.onVerify(token);
+      await widget.onVerify(token, widget.email ?? '');
       if (!mounted) return;
       setState(() => _error = null);
     } catch (e) {
@@ -75,86 +78,63 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Verificar correo',
-                style: GoogleFonts.outfit(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+    return AuthScaffold(
+      title: 'Verificar correo',
+      subtitle: widget.email != null
+          ? 'Ingresa el código que enviamos a ${widget.email}'
+          : 'Ingresa el código que enviamos a tu correo.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_resendMessage != null) ...[
+            Text(
+              _resendMessage!,
+              style: GoogleFonts.outfit(color: MeEncontrastePalette.primary600, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (_error != null) ...[
+            Text(
+              _error!,
+              style: GoogleFonts.outfit(color: MeEncontrastePalette.error500, fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+          ],
+          TextField(
+            controller: _tokenCtrl,
+            style: authInputTextStyle(),
+            decoration: authInputDecoration(
+              context,
+              label: 'Código de verificación',
+              hint: 'Pega aquí el token del correo',
+            ),
+          ),
+          const SizedBox(height: 24),
+          PrimaryButton(
+            label: _loading ? 'Verificando...' : 'Verificar',
+            onPressed: _loading ? () {} : _submit,
+          ),
+          if (widget.onResend != null) ...[
+            const SizedBox(height: 16),
+            Center(
+              child: TextButton.icon(
+                onPressed: _resending ? null : _handleResend,
+                icon: Icon(
+                  Icons.refresh,
+                  size: 18,
+                  color: _resending ? MeEncontrastePalette.gray500 : MeEncontrastePalette.primary600,
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                widget.email != null
-                    ? 'Ingresa el código que enviamos a ${widget.email}'
-                    : 'Ingresa el código que enviamos a tu correo.',
-                style: GoogleFonts.outfit(color: AppColors.textSecondary, fontSize: 16),
-              ),
-              const SizedBox(height: 32),
-              if (_resendMessage != null) ...[
-                Text(
-                  _resendMessage!,
-                  style: GoogleFonts.outfit(color: Colors.green, fontSize: 13),
-                ),
-                const SizedBox(height: 12),
-              ],
-              if (_error != null) ...[
-                Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 14)),
-                const SizedBox(height: 16),
-              ],
-              TextField(
-                controller: _tokenCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Código de verificación',
-                  hintText: 'Pega aquí el token del correo',
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: GradientButton(
-                  label: _loading ? 'Verificando...' : 'Verificar',
-                  onPressed: _loading ? () {} : _submit,
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (widget.onResend != null)
-                Center(
-                  child: TextButton.icon(
-                    onPressed: _resending ? null : _handleResend,
-                    icon: Icon(
-                      Icons.refresh,
-                      size: 18,
-                      color: _resending ? AppColors.textSecondary : AppColors.gradientStart,
-                    ),
-                    label: Text(
-                      _resending ? 'Reenviando...' : 'Reenviar código',
-                      style: GoogleFonts.outfit(
-                        color: _resending ? AppColors.textSecondary : AppColors.gradientStart,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                label: Text(
+                  _resending ? 'Reenviando...' : 'Reenviar código',
+                  style: GoogleFonts.outfit(
+                    color: _resending ? MeEncontrastePalette.gray500 : MeEncontrastePalette.primary600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-            ],
-          ),
-        ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

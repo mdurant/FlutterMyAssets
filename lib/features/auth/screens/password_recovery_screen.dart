@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/api/api_error_helper.dart';
-import '../../../core/theme/app_theme.dart';
-import '../widgets/gradient_button.dart';
+import '../../../core/theme/me_encontraste_palette.dart';
+import '../widgets/auth_scaffold.dart';
+import '../widgets/auth_input_decoration.dart';
+import '../widgets/primary_button.dart';
 
 class PasswordRecoveryScreen extends StatefulWidget {
   const PasswordRecoveryScreen({
@@ -53,90 +55,66 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary),
-          onPressed: widget.onBackToLogin,
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Recuperar contraseña',
-                style: GoogleFonts.outfit(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+    return AuthScaffold(
+      title: '¿Olvidaste tu contraseña?',
+      subtitle: _sent
+          ? 'Revisa tu correo y usa el enlace para restablecer tu contraseña.'
+          : 'Selecciona cómo quieres restablecer tu contraseña. Te enviaremos un enlace por correo.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_error != null) ...[
+            Text(
+              _error!,
+              style: GoogleFonts.outfit(color: MeEncontrastePalette.error500, fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (!_sent) ...[
+            TextField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              style: authInputTextStyle(),
+              decoration: authInputDecoration(
+                context,
+                label: 'Correo',
+                hint: 'tu@correo.com',
+              ),
+            ),
+            const SizedBox(height: 24),
+            PrimaryButton(
+              label: _loading ? 'Enviando...' : 'Continuar',
+              onPressed: _loading ? () {} : _submit,
+            ),
+          ] else if (widget.onGoToReset != null) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: widget.onGoToReset,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: MeEncontrastePalette.primary600,
+                  side: const BorderSide(color: MeEncontrastePalette.primary600),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: Text(
+                  'Ya tengo el token, cambiar contraseña',
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                _sent
-                    ? 'Revisa tu correo y usa el enlace para restablecer tu contraseña.'
-                    : 'Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.',
-                style: GoogleFonts.outfit(color: AppColors.textSecondary, fontSize: 16),
+            ),
+          ],
+          const SizedBox(height: 24),
+          Center(
+            child: TextButton(
+              onPressed: widget.onBackToLogin,
+              child: Text(
+                'Volver a iniciar sesión',
+                style: GoogleFonts.outfit(color: MeEncontrastePalette.primary600, fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: 32),
-              if (_error != null) ...[
-                Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 14)),
-                const SizedBox(height: 16),
-              ],
-              if (!_sent) ...[
-                TextField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Correo',
-                    hintText: 'tu@correo.com',
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: GradientButton(
-                    label: _loading ? 'Enviando...' : 'Enviar enlace',
-                    onPressed: _loading ? () {} : _submit,
-                  ),
-                ),
-              ] else if (widget.onGoToReset != null) ...[
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: widget.onGoToReset,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.gradientStart,
-                      side: const BorderSide(color: AppColors.gradientStart),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: Text(
-                      'Ya tengo el token, cambiar contraseña',
-                      style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 24),
-              Center(
-                child: TextButton(
-                  onPressed: widget.onBackToLogin,
-                  child: Text(
-                    'Volver a iniciar sesión',
-                    style: GoogleFonts.outfit(color: AppColors.gradientStart),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

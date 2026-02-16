@@ -41,6 +41,12 @@ class AuthApi {
     return _client.post<void>('/auth/resend-verify-email', data: {'email': email});
   }
 
+  /// Envía código OTP de login al correo. Recomendado para "Iniciar sesión con código" y "Reenviar código".
+  /// Backend: POST /auth/send-login-otp. Contrato: FLUTTER-BACKEND-LOGIN-OTP.md.
+  Future<ApiResponse<Map<String, dynamic>>> sendLoginOtp(String email) async {
+    return _client.post<Map<String, dynamic>>('/auth/send-login-otp', data: {'email': email});
+  }
+
   Future<ApiResponse<Map<String, dynamic>>> login({
     required String email,
     String? password,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/me_encontraste_palette.dart';
+import '../widgets/primary_button.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.onLogout});
@@ -10,28 +11,30 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: MeEncontrastePalette.white,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: MeEncontrastePalette.white,
         elevation: 0,
         title: Text(
-          'FlutterMyAssets',
+          'Me encontraste',
           style: GoogleFonts.outfit(
-            color: AppColors.textPrimary,
+            color: MeEncontrastePalette.gray900,
             fontWeight: FontWeight.w600,
             fontSize: 18,
           ),
         ),
+        iconTheme: const IconThemeData(color: MeEncontrastePalette.gray900),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: AppColors.textPrimary),
+            icon: const Icon(Icons.logout),
             onPressed: onLogout,
+            tooltip: 'Cerrar sesión',
           ),
         ],
       ),
-      body: Center(
+      body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -40,7 +43,7 @@ class HomeScreen extends StatelessWidget {
                 style: GoogleFonts.outfit(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: MeEncontrastePalette.gray900,
                 ),
               ),
               const SizedBox(height: 12),
@@ -48,9 +51,15 @@ class HomeScreen extends StatelessWidget {
                 'Has iniciado sesión correctamente. Aquí irá el contenido principal de la app.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
-                  color: AppColors.textSecondary,
+                  color: MeEncontrastePalette.gray600,
                   fontSize: 16,
+                  height: 1.4,
                 ),
+              ),
+              const SizedBox(height: 40),
+              PrimaryButton(
+                label: 'Cerrar sesión',
+                onPressed: onLogout,
               ),
             ],
           ),
