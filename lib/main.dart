@@ -1,4 +1,16 @@
 import 'package:flutter/material.dart';
+import 'core/theme/app_theme.dart';
+import 'core/api/api_client.dart';
+import 'core/api/auth_api.dart';
+import 'core/api/regions_api.dart';
+import 'features/auth/screens/welcome_screen.dart';
+import 'features/auth/screens/login_screen.dart';
+import 'features/auth/screens/register_screen.dart' show RegisterPayload, RegisterScreen;
+import 'features/auth/screens/verify_email_screen.dart';
+import 'features/auth/screens/verify_otp_screen.dart';
+import 'features/auth/screens/password_recovery_screen.dart';
+import 'features/auth/screens/password_reset_screen.dart';
+import 'features/auth/screens/home_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -7,116 +19,183 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    final theme = AppTheme.dark;
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      title: 'FlutterMyAssets',
+      theme: theme,
+      darkTheme: theme,
+      themeMode: ThemeMode.dark,
+      debugShowCheckedModeBanner: false,
+      home: const AuthFlow(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class AuthFlow extends StatefulWidget {
+  const AuthFlow({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<AuthFlow> createState() => _AuthFlowState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _AuthFlowState extends State<AuthFlow> {
+  final ApiClient _apiClient = ApiClient();
+  late final AuthApi _authApi = AuthApi(_apiClient);
+  late final RegionsApi _regionsApi = RegionsApi(_apiClient);
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  void _goToWelcome() {
+    setState(() {});
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => _buildWelcome()),
+      (r) => false,
+    );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+  Widget _buildWelcome() {
+    return WelcomeScreen(
+      onGetStarted: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => LoginScreen(
+              onLogin: _onLogin,
+              onRegister: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => RegisterScreen(
+                    onRegister: _onRegister,
+                    onLogin: () => Navigator.of(context).pop(),
+                    getRegions: _regionsApi.getRegions,
+                    getComunas: _regionsApi.getComunas,
+                  ),
+                ),
+              ),
+              onPasswordRecovery: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PasswordRecoveryScreen(
+                    onSubmit: _onPasswordRecovery,
+                    onBackToLogin: () => Navigator.of(context).pop(),
+                    onGoToReset: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PasswordResetScreen(
+                          onSubmit: _onPasswordReset,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _onLogin(String email, String password) async {
+    final res = await _authApi.login(email: email, password: password);
+    if (!res.success) throw Exception(res.message ?? res.errorCode ?? 'Error al iniciar sesión');
+    final data = res.data;
+    if (data == null) return;
+    final requiresOtp = data['requiresOtp'] as bool? ?? false;
+    if (!mounted) return;
+    if (requiresOtp) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => VerifyOtpScreen(
+            email: email,
+            purpose: 'LOGIN',
+            onVerify: (code) => _onVerifyOtp(email, code, 'LOGIN'),
+            onResendOtp: () => _authApi.login(email: email),
+          ),
+        ),
+      );
+    } else {
+      _saveTokensAndGoHome(data);
+    }
+  }
+
+  Future<void> _onVerifyOtp(String email, String code, String purpose) async {
+    final res = await _authApi.verifyOtp(email: email, code: code, purpose: purpose);
+    if (!res.success) throw Exception(res.message ?? res.errorCode ?? 'Código inválido');
+    final data = res.data;
+    if (data != null) _saveTokensAndGoHome(data);
+  }
+
+  void _saveTokensAndGoHome(Map<String, dynamic> data) {
+    final access = data['accessToken'] as String?;
+    final refresh = data['refreshToken'] as String?;
+    if (access != null) _apiClient.setTokens(access: access, refresh: refresh);
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => HomeScreen(onLogout: _onLogout),
+      ),
+      (r) => false,
+    );
+  }
+
+  Future<void> _onLogout() async {
+    final refresh = _apiClient.refreshToken;
+    if (refresh != null) {
+      try {
+        await _authApi.logout(refresh);
+      } catch (_) {}
+    }
+    _apiClient.setTokens(access: null, refresh: null);
+    _goToWelcome();
+  }
+
+  Future<void> _onRegister(RegisterPayload payload) async {
+    final res = await _authApi.register(
+      email: payload.email,
+      password: payload.password,
+      nombres: payload.nombres,
+      apellidos: payload.apellidos,
+      sexo: payload.sexo,
+      fechaNacimiento: payload.fechaNacimiento,
+      domicilio: payload.domicilio,
+      regionId: payload.regionId,
+      comunaId: payload.comunaId,
+      acceptTerms: payload.acceptTerms,
+    );
+    if (!res.success) throw Exception(res.message ?? res.errorCode ?? 'Error al registrarse');
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => VerifyEmailScreen(
+          email: payload.email,
+          onVerify: _onVerifyEmail,
+          onResend: () => _authApi.resendVerifyEmail(payload.email),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
     );
+  }
+
+  Future<void> _onVerifyEmail(String token) async {
+    final res = await _authApi.verifyEmail(token);
+    if (!res.success) throw Exception(res.message ?? res.errorCode ?? 'Token inválido');
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => _buildWelcome()),
+      (r) => false,
+    );
+  }
+
+  Future<void> _onPasswordRecovery(String email) async {
+    final res = await _authApi.passwordRecovery(email);
+    if (!res.success) throw Exception(res.message ?? res.errorCode ?? 'Error');
+  }
+
+  Future<void> _onPasswordReset(String token, String newPassword) async {
+    final res = await _authApi.passwordReset(token: token, newPassword: newPassword);
+    if (!res.success) throw Exception(res.message ?? res.errorCode ?? 'Error');
+    if (!mounted) return;
+    Navigator.of(context).popUntil((r) => r.isFirst);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _buildWelcome();
   }
 }

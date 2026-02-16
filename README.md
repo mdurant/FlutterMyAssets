@@ -41,6 +41,9 @@ La arquitectura es:
 - `docs/`    → documentación y diagramas
 - `devops/`  → docker-compose, CI/CD (si aplica)
 
+## Documentación
+- **[Listado de rutas del backend](docs/API-BACKEND.md)** — Base URL, Auth, Catálogo (regiones/comunas), formato de respuestas y códigos HTTP.
+
 ## Convención Git (branching)
 - `main`: producción
 - `develop`: integración
