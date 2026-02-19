@@ -10,7 +10,7 @@ import 'features/onboarding/onboarding_screen.dart';
 import 'features/auth/screens/welcome_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart' show RegisterPayload, RegisterScreen;
-import 'features/auth/screens/verify_email_screen.dart';
+import 'features/auth/screens/pending_email_verification_screen.dart';
 import 'features/auth/screens/verify_otp_screen.dart';
 import 'features/auth/screens/password_recovery_screen.dart';
 import 'features/auth/screens/password_reset_screen.dart';
@@ -203,26 +203,15 @@ class _AuthFlowState extends State<AuthFlow> {
     );
     if (!res.success) throw Exception(res.message ?? res.errorCode ?? 'Error al registrarse');
     if (!mounted) return;
+    // El usuario activa su cuenta solo desde el correo (enlace). No se ingresa token en la app.
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => VerifyEmailScreen(
+        builder: (_) => PendingEmailVerificationScreen(
           email: payload.email,
-          onVerify: (token, email) => _onVerifyEmail(token, email),
+          builderLogin: _buildLogin,
           onResend: () => _authApi.resendVerifyEmail(payload.email),
         ),
       ),
-    );
-  }
-
-  Future<void> _onVerifyEmail(String token, String email) async {
-    final res = await _authApi.verifyEmail(token);
-    if (!res.success) throw Exception(res.message ?? res.errorCode ?? 'Token inválido');
-    if (!mounted) return;
-    // Tras validar el token, ir a bienvenida para que el usuario inicie sesión (con contraseña o "Iniciar sesión con código").
-    // No mostramos pantalla OTP aquí porque el backend no envía OTP en este flujo; el OTP es solo para login por código.
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => _buildWelcome()),
-      (route) => route.isFirst,
     );
   }
 
