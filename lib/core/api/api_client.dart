@@ -9,6 +9,9 @@ import 'api_response.dart';
 /// - Flutter Web: el backend debe enviar CORS (Access-Control-Allow-Origin) para tu origen.
 const String kBaseUrl = 'http://localhost:3000/api/v1';
 
+/// Base del servidor para URLs de recursos (ej. imágenes /uploads/...).
+String get kBaseUrlForAssets => kBaseUrl.replaceFirst(RegExp(r'/api/v1$'), '');
+
 class ApiClient {
   ApiClient({String? baseUrl}) {
     _dio = Dio(BaseOptions(
@@ -61,6 +64,22 @@ class ApiClient {
 
   Future<ApiResponse<T>> delete<T>(String path) async {
     final res = await _dio.delete<T>(path);
+    return ApiResponse.fromResponse(res);
+  }
+
+  /// POST multipart (p. ej. imágenes de propiedad). data es FormData.
+  Future<ApiResponse<T>> postMultipart<T>(
+    String path, {
+    required FormData data,
+  }) async {
+    final res = await _dio.post<T>(
+      path,
+      data: data,
+      options: Options(
+        contentType: 'multipart/form-data',
+        sendTimeout: const Duration(seconds: 30),
+      ),
+    );
     return ApiResponse.fromResponse(res);
   }
 

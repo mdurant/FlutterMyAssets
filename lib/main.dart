@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'core/api/api_client.dart';
 import 'core/api/api_error_helper.dart';
+import 'core/api/app_apis.dart';
 import 'core/api/auth_api.dart';
 import 'core/api/regions_api.dart';
 import 'features/onboarding/splash_screen.dart';
+import 'features/home/post_login_gate.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/auth/screens/welcome_screen.dart';
 import 'features/auth/screens/login_screen.dart';
@@ -15,7 +17,6 @@ import 'features/auth/screens/verify_otp_screen.dart';
 import 'features/auth/screens/password_recovery_screen.dart';
 import 'features/auth/screens/password_reset_screen.dart';
 import 'features/auth/screens/success_reset_screen.dart';
-import 'features/auth/screens/home_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -47,6 +48,7 @@ class AuthFlow extends StatefulWidget {
 
 class _AuthFlowState extends State<AuthFlow> {
   final ApiClient _apiClient = ApiClient();
+  late final AppApis _apis = AppApis(_apiClient);
   late final AuthApi _authApi = AuthApi(_apiClient);
   late final RegionsApi _regionsApi = RegionsApi(_apiClient);
 
@@ -166,10 +168,10 @@ class _AuthFlowState extends State<AuthFlow> {
     final refresh = data['refreshToken'] as String?;
     if (access != null) _apiClient.setTokens(access: access, refresh: refresh);
     if (!mounted) return;
-    // Mantener AuthFlow en la pila para que el logout tenga context válido
+    // Gate: términos (403 TERMS_NOT_ACCEPTED) y luego MainAppShell (Explorar, Favoritos, Mensajes, Avisos, Cuenta)
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => HomeScreen(onLogout: _onLogout),
+        builder: (_) => PostLoginGate(apis: _apis, onLogout: _onLogout),
       ),
       (route) => route.isFirst,
     );

@@ -62,6 +62,13 @@ String messageForLoginOtpRequest(DioException e) {
   }
 }
 
+/// Indica si el error es 403 TERMS_NOT_ACCEPTED (usuario debe aceptar términos).
+bool isTermsNotAccepted(DioException e) {
+  if (e.type != DioExceptionType.badResponse || e.response?.data is! Map) return false;
+  final data = e.response!.data as Map;
+  return e.response?.statusCode == 403 && data['error'] == 'TERMS_NOT_ACCEPTED';
+}
+
 /// Mensajes para verificación OTP (POST /auth/verify-otp). Ver FLUTTER-BACKEND-LOGIN-OTP.md.
 String messageForVerifyOtpError(DioException e) {
   if (e.type != DioExceptionType.badResponse || e.response?.data is! Map) {
