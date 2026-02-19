@@ -38,7 +38,7 @@ class _MainAppShellState extends State<MainAppShell> {
       case 3:
         return NotificationsScreen(apis: widget.apis);
       case 4:
-        return ProfileScreen(onLogout: widget.onLogout);
+        return ProfileScreen(apis: widget.apis, onLogout: widget.onLogout);
       default:
         return ExploreScreen(apis: widget.apis);
     }

@@ -8,6 +8,7 @@ import 'conversations_api.dart';
 import 'notifications_api.dart';
 import 'bookings_api.dart';
 import 'regions_api.dart';
+import 'profile_api.dart';
 
 /// Contenedor de todas las APIs de la app (para inyección en PostLoginGate / MainAppShell).
 class AppApis {
@@ -24,4 +25,5 @@ class AppApis {
   late final NotificationsApi notifications = NotificationsApi(client);
   late final BookingsApi bookings = BookingsApi(client);
   late final RegionsApi regions = RegionsApi(client);
+  late final ProfileApi profile = ProfileApi(client);
 }

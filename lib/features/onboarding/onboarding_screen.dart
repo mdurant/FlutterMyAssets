@@ -17,19 +17,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   static const _pages = [
     (
-      icon: Icons.home_rounded,
+      image: 'assets/onboarding/img1.png',
       title: 'Encuentra tu próximo arriendo con total confianza',
       subtitle: 'Explora propiedades verificadas y conoce su nivel de riesgo antes de decidir.',
       button: 'Siguiente',
     ),
     (
-      icon: Icons.verified_user_rounded,
+      image: 'assets/onboarding/img2.png',
       title: 'Evalúa el riesgo antes de arrendar',
       subtitle: 'Cada propiedad cuenta con un rating que te ayuda a tomar decisiones seguras y transparentes.',
       button: 'Siguiente',
     ),
     (
-      icon: Icons.handshake_rounded,
+      image: 'assets/onboarding/img3.png',
       title: 'Arrienda o publica con seguridad',
       subtitle: 'Conecta con propietarios o arrendatarios confiables y gestiona todo desde tu celular.',
       button: 'Comenzar',
@@ -86,24 +86,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const SizedBox(height: 24),
-                        Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: MeEncontrastePalette.primary50,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: MeEncontrastePalette.primary200.withValues(alpha: 0.5),
-                                blurRadius: 24,
-                                offset: const Offset(0, 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Image.asset(
+                            p.image,
+                            height: 220,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              height: 220,
+                              color: MeEncontrastePalette.primary50,
+                              child: Icon(
+                                Icons.home_rounded,
+                                size: 72,
+                                color: MeEncontrastePalette.primary600,
                               ),
-                            ],
-                          ),
-                          child: Icon(
-                            p.icon,
-                            size: 56,
-                            color: MeEncontrastePalette.primary600,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 48),

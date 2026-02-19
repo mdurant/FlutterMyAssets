@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'core/theme/app_theme.dart';
 import 'core/api/api_client.dart';
+import 'core/user_cache.dart';
 import 'core/api/api_error_helper.dart';
 import 'core/api/app_apis.dart';
 import 'core/api/auth_api.dart';
@@ -19,6 +21,8 @@ import 'features/auth/screens/password_reset_screen.dart';
 import 'features/auth/screens/success_reset_screen.dart';
 
 void main() {
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   runApp(const MyApp());
 }
 
@@ -116,7 +120,7 @@ class _AuthFlowState extends State<AuthFlow> {
         ),
       );
     } else {
-      _saveTokensAndGoHome(data);
+      await _saveTokensAndGoHome(data, email: email);
     }
   }
 
@@ -150,7 +154,7 @@ class _AuthFlowState extends State<AuthFlow> {
       final data = res.data;
       if (!mounted) return;
       if (data != null && data['accessToken'] != null) {
-        _saveTokensAndGoHome(data);
+        await _saveTokensAndGoHome(data, email: email);
       } else {
         // OTP válido pero backend no devolvió tokens (ej. purpose EMAIL_VERIFY sin auto-login) → ir a bienvenida
         Navigator.of(context).pushAndRemoveUntil(
@@ -163,10 +167,30 @@ class _AuthFlowState extends State<AuthFlow> {
     }
   }
 
-  void _saveTokensAndGoHome(Map<String, dynamic> data) {
+  Future<void> _saveTokensAndGoHome(Map<String, dynamic> data, {String? email, String? displayName}) async {
     final access = data['accessToken'] as String?;
     final refresh = data['refreshToken'] as String?;
     if (access != null) _apiClient.setTokens(access: access, refresh: refresh);
+    // Extraer user de la respuesta (login/verify-otp) para guardar nombres y apellidos
+    final user = data['user'] as Map<String, dynamic>?;
+    String? cacheEmail = email;
+    String? cacheDisplayName = displayName;
+    if (user != null) {
+      cacheEmail ??= user['email']?.toString();
+      final nombres = user['nombres']?.toString().trim();
+      final apellidos = user['apellidos']?.toString().trim();
+      if (cacheDisplayName == null && (nombres != null || apellidos != null)) {
+        final full = [if (nombres != null && nombres.isNotEmpty) nombres, if (apellidos != null && apellidos.isNotEmpty) apellidos].join(' ').trim();
+        if (full.isNotEmpty) cacheDisplayName = full;
+      }
+    }
+    if (cacheEmail != null || cacheDisplayName != null) {
+      try {
+        await UserCache.save(email: cacheEmail, displayName: cacheDisplayName);
+      } catch (_) {
+        // No bloquear el login si la caché falla (ej. channel-error tras hot restart)
+      }
+    }
     if (!mounted) return;
     // Gate: términos (403 TERMS_NOT_ACCEPTED) y luego MainAppShell (Explorar, Favoritos, Mensajes, Avisos, Cuenta)
     Navigator.of(context).pushAndRemoveUntil(
@@ -185,6 +209,7 @@ class _AuthFlowState extends State<AuthFlow> {
       } catch (_) {}
     }
     _apiClient.setTokens(access: null, refresh: null);
+    await UserCache.clear();
     if (!mounted) return;
     // Volver al home (Welcome) sin eliminar AuthFlow
     Navigator.of(context).popUntil((route) => route.isFirst);
@@ -204,6 +229,10 @@ class _AuthFlowState extends State<AuthFlow> {
       acceptTerms: payload.acceptTerms,
     );
     if (!res.success) throw Exception(res.message ?? res.errorCode ?? 'Error al registrarse');
+    await UserCache.save(
+      email: payload.email,
+      displayName: [payload.nombres, payload.apellidos].where((s) => s.trim().isNotEmpty).join(' ').trim(),
+    );
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(

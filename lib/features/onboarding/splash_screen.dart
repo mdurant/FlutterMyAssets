@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/me_encontraste_palette.dart';
 
@@ -16,14 +17,17 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) widget.onFinish();
+      if (mounted) {
+        FlutterNativeSplash.remove();
+        widget.onFinish();
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: MeEncontrastePalette.white,
+      backgroundColor: Colors.black,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -31,19 +35,24 @@ class _SplashScreenState extends State<SplashScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.home_work_rounded,
-                  size: 72,
-                  color: MeEncontrastePalette.primary600,
+                Image.asset(
+                  'assets/logo.png',
+                  height: 140,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Icon(
+                    Icons.home_work_rounded,
+                    size: 72,
+                    color: MeEncontrastePalette.primary600,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'ME ENCONTRASTE',
+                  'BUSCAME',
                   style: GoogleFonts.outfit(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.2,
-                    color: MeEncontrastePalette.gray900,
+                    color: MeEncontrastePalette.gray100,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -52,7 +61,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   style: GoogleFonts.outfit(
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
-                    color: MeEncontrastePalette.gray700,
+                    color: MeEncontrastePalette.gray400,
                   ),
                 ),
                 const SizedBox(height: 16),

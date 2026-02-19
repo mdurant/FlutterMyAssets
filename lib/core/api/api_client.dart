@@ -62,6 +62,14 @@ class ApiClient {
     return ApiResponse.fromResponse(res);
   }
 
+  Future<ApiResponse<T>> patch<T>(
+    String path, {
+    dynamic data,
+  }) async {
+    final res = await _dio.patch<T>(path, data: data);
+    return ApiResponse.fromResponse(res);
+  }
+
   Future<ApiResponse<T>> delete<T>(String path) async {
     final res = await _dio.delete<T>(path);
     return ApiResponse.fromResponse(res);
