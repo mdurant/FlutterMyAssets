@@ -12,10 +12,13 @@ class PostLoginGate extends StatefulWidget {
     super.key,
     required this.apis,
     required this.onLogout,
+    this.initialTabIndex = 4,
   });
 
   final AppApis apis;
   final VoidCallback onLogout;
+  /// Tab inicial en MainAppShell (4 = Cuenta). Tras validar registro o login se abre en Cuenta.
+  final int initialTabIndex;
 
   @override
   State<PostLoginGate> createState() => _PostLoginGateState();
@@ -35,7 +38,7 @@ class _PostLoginGateState extends State<PostLoginGate> {
   Future<void> _checkTerms() async {
     setState(() => _error = null);
     try {
-      final res = await widget.apis.terms.getActive();
+      await widget.apis.terms.getActive();
       if (!mounted) return;
       setState(() => _termsAccepted = true);
     } on DioException catch (e) {
@@ -107,6 +110,10 @@ class _PostLoginGateState extends State<PostLoginGate> {
       );
     }
 
-    return MainAppShell(apis: widget.apis, onLogout: widget.onLogout);
+    return MainAppShell(
+      apis: widget.apis,
+      onLogout: widget.onLogout,
+      initialIndex: widget.initialTabIndex,
+    );
   }
 }

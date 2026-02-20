@@ -341,7 +341,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildMenuList() {
     final items = [
-      _MenuItem(icon: Icons.settings_outlined, label: 'Configuración', onTap: () => _push(SettingsScreen())),
+      _MenuItem(icon: Icons.settings_outlined, label: 'Configuración', onTap: () => _push(SettingsScreen(apis: widget.apis, onLogout: widget.onLogout))),
       _MenuItem(icon: Icons.notifications_outlined, label: 'Notificaciones', onTap: () => _push(NotificationPreferencesScreen())),
       _MenuItem(icon: Icons.history, label: 'Vistos recientemente', onTap: () => _push(RecentViewedScreen())),
       _MenuItem(icon: Icons.info_outline_rounded, label: 'Acerca de', onTap: () => _push(AboutScreen())),

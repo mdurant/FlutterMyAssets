@@ -1,20 +1,21 @@
 # Perfil de usuario — contrato Backend ↔ Flutter
 
-La app Flutter necesita estos endpoints para la pantalla **Cuenta**: datos del usuario, actualización de perfil y **subida de foto de perfil (avatar)** desde el dispositivo.
+La app Flutter usa los endpoints bajo **`/api/v1/auth`** para la pantalla **Configuración**: datos del usuario, actualización de perfil y **cambio de correo con verificación**.
 
 ---
 
-## Rutas recomendadas (prefijo `/api/v1`)
+## Rutas (prefijo `/api/v1`)
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| **GET** | `/users/me` | Devuelve el perfil del usuario autenticado (Authorization: Bearer &lt;token&gt;). |
-| **PATCH** | `/users/me` | Actualiza campos del perfil (nombres, apellidos, etc.). |
-| **POST** | `/users/me/avatar` | Subida de foto de perfil (multipart). |
+| **GET** | `/auth/me` | Devuelve el perfil del usuario autenticado (Authorization: Bearer &lt;token&gt;). |
+| **PATCH** | `/auth/me` | Actualiza datos personales: nombres, apellidos, domicilio, regionId, comunaId, avatarUrl. **No incluye cambio de email.** |
+| **POST** | `/auth/me/request-email-change` | Solicitar cambio de correo. Envía token al **nuevo** email. Tras verificar (verify-new-email), el usuario debe cerrar sesión e iniciar sesión con el nuevo correo. Body: `{ "newEmail": "..." }`. Errores: SAME_EMAIL, EMAIL_IN_USE, EMAIL_SEND_FAILED. |
+| **POST** | `/auth/me/avatar` | Subida de foto de perfil (multipart). |
 
 ---
 
-## GET /users/me
+## GET /auth/me
 
 **Headers:** `Authorization: Bearer <accessToken>`
 
@@ -27,86 +28,93 @@ La app Flutter necesita estos endpoints para la pantalla **Cuenta**: datos del u
     "email": "usuario@ejemplo.cl",
     "nombres": "Juan",
     "apellidos": "Pérez",
+    "domicilio": null,
+    "regionId": null,
+    "comunaId": null,
     "avatarUrl": "/uploads/avatars/uuid.jpg"
   }
 }
 ```
 
-- `avatarUrl` puede ser `null` o una URL **relativa** (ej. `/uploads/avatars/...`). Flutter concatena con la base del servidor para mostrar la imagen.
-- Si el usuario no tiene foto, la app muestra un avatar por defecto (iniciales o ícono).
+- `avatarUrl` puede ser `null` o una URL relativa. Flutter concatena con la base del servidor para mostrar la imagen.
 
 ---
 
-## PATCH /users/me
+## PATCH /auth/me
 
 **Headers:** `Authorization: Bearer <accessToken>`
 
-**Body (JSON):**
+**Body (JSON), todos opcionales:**
 ```json
 {
   "nombres": "Juan",
-  "apellidos": "Pérez"
+  "apellidos": "Pérez",
+  "domicilio": "Calle 123",
+  "regionId": "uuid",
+  "comunaId": "uuid",
+  "avatarUrl": "/uploads/avatars/abc.jpg"
 }
 ```
 
-Campos opcionales. Solo se envían los que se desean actualizar.
+**No se envía `email`** en PATCH. El cambio de correo es un flujo aparte (request-email-change + verify-new-email).
 
-**Respuesta (200):** igual que GET /users/me (objeto `data` con el perfil actualizado).
+**Respuesta (200):** igual que GET /auth/me (objeto `data` con el perfil actualizado).
 
 ---
 
-## POST /users/me/avatar
+## POST /auth/me/request-email-change
+
+**Headers:** `Authorization: Bearer <accessToken>`
+
+**Body:**
+```json
+{
+  "newEmail": "nuevo@ejemplo.cl"
+}
+```
+
+- El backend envía un correo con token al **nuevo** email.
+- El usuario valida con **GET** o **POST** `/api/v1/auth/verify-new-email` (token en query o body).
+- Tras verificación exitosa, el usuario debe **cerrar sesión** e **iniciar sesión** con el nuevo correo.
+
+**Errores (4xx):**
+- `SAME_EMAIL` — El nuevo correo es igual al actual.
+- `EMAIL_IN_USE` — El correo ya está en uso por otra cuenta.
+- `EMAIL_SEND_FAILED` — No se pudo enviar el correo.
+
+---
+
+## GET /api/v1/auth/verify-new-email y POST
+
+- **GET** `/api/v1/auth/verify-new-email?token=...` — Verificación desde el enlace del correo.
+- **POST** `/api/v1/auth/verify-new-email` con body `{ "token": "..." }` — Verificación desde cliente/app.
+
+Tras éxito, la app muestra mensaje de éxito, cierra sesión y lleva al usuario al login para que use el nuevo correo.
+
+---
+
+## POST /auth/me/avatar
 
 **Headers:** `Authorization: Bearer <accessToken>`  
 **Content-Type:** `multipart/form-data`
 
-**Body (multipart):**
-- Campo: `file` (archivo de imagen desde galería o cámara).
-- Flutter envía el archivo con nombre de campo `file`.
-
-**Requisitos sugeridos para el backend:**
-- Aceptar formatos: JPEG, PNG, WebP.
-- Tamaño máximo recomendado: 2–5 MB.
-- Redimensionar/recortar en servidor si se desea (ej. 400x400) y guardar en `/uploads/avatars/` o similar.
-- Guardar la referencia en el usuario (ej. `avatarUrl`) y devolverla en la respuesta.
+**Body (multipart):** campo `file` (imagen).
 
 **Respuesta esperada (200):**
 ```json
 {
   "success": true,
-  "data": {
-    "avatarUrl": "/uploads/avatars/abc123.jpg"
-  }
+  "data": { "avatarUrl": "/uploads/avatars/abc123.jpg" }
 }
 ```
-
-O en formato plano:
-```json
-{
-  "success": true,
-  "avatarUrl": "/uploads/avatars/abc123.jpg"
-}
-```
-
-Flutter acepta ambos (busca `data.avatarUrl` o `avatarUrl` en la raíz).
+o `{ "success": true, "avatarUrl": "..." }`. Flutter acepta ambos.
 
 ---
 
 ## Resumen para Backend
 
-1. **GET /users/me** — Devuelve `id`, `email`, `nombres`, `apellidos`, `avatarUrl` del usuario identificado por el JWT.
-2. **PATCH /users/me** — Actualiza `nombres` y/o `apellidos`; responde con el perfil actualizado.
-3. **POST /users/me/avatar** — Multipart con campo `file`; guarda la imagen, actualiza `avatarUrl` del usuario y devuelve la URL (relativa o absoluta).
-
-Con esto la app puede mostrar nombre, correo y avatar en la pantalla Cuenta y permitir cambiar la foto desde el dispositivo.
-
----
-
-## Flutter: permisos para foto de perfil
-
-La app usa **image_picker** para galería y cámara. En **iOS** (`ios/Runner/Info.plist`) añade:
-
-- `NSPhotoLibraryUsageDescription` — para elegir foto desde la galería.
-- `NSCameraUsageDescription` — para tomar foto con la cámara.
-
-En **Android** (API 33+), los permisos de lectura de medios se piden en tiempo de ejecución; para cámara puede ser necesario `android.permission.CAMERA` en `AndroidManifest.xml` si usas cámara.
+1. **GET /auth/me** — Devuelve `id`, `email`, `nombres`, `apellidos`, `domicilio`, `regionId`, `comunaId`, `avatarUrl`.
+2. **PATCH /auth/me** — Actualiza solo datos personales (sin email).
+3. **POST /auth/me/request-email-change** — Body `newEmail`; envía token al nuevo correo; errores SAME_EMAIL, EMAIL_IN_USE, EMAIL_SEND_FAILED.
+4. **GET/POST /auth/verify-new-email** — Valida token; tras éxito el usuario debe cerrar sesión y loguearse con el nuevo correo.
+5. **POST /auth/me/avatar** — Multipart con `file`; devuelve `avatarUrl`.

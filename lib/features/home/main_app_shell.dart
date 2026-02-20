@@ -13,17 +13,26 @@ class MainAppShell extends StatefulWidget {
     super.key,
     required this.apis,
     required this.onLogout,
+    this.initialIndex = 0,
   });
 
   final AppApis apis;
   final VoidCallback onLogout;
+  /// Tab inicial (0=Explorar, 4=Cuenta). Tras login/registro se usa 4 para ir directo a Cuenta.
+  final int initialIndex;
 
   @override
   State<MainAppShell> createState() => _MainAppShellState();
 }
 
 class _MainAppShellState extends State<MainAppShell> {
-  int _index = 0;
+  late int _index;
+
+  @override
+  void initState() {
+    super.initState();
+    _index = widget.initialIndex.clamp(0, 4);
+  }
   static const _duration = Duration(milliseconds: 280);
   static const _curve = Curves.easeOutCubic;
 

@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Guarda email y nombre del usuario para mostrarlos en el perfil cuando
-/// GET /users/me no exista (404) o falle. Si el canal nativo falla (ej. tras hot restart),
+/// GET /auth/me falle o no esté disponible. Si el canal nativo falla (ej. tras hot restart),
 /// las operaciones no lanzan: el login sigue y el perfil usará "Usuario" / "—" hasta que
 /// el backend devuelva datos o se reinicie la app por completo.
 class UserCache {

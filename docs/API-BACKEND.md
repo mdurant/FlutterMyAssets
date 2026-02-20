@@ -38,6 +38,11 @@ Prefijo de API: `/api/v1`
 | **POST** | `/api/v1/auth/logout` | Cerrar sesión (revocar refresh token). | Body: `{ "refreshToken": "..." }` |
 | **POST** | `/api/v1/auth/password-recovery` | Solicitar restablecimiento de contraseña. Envía correo con enlace. | Body: `{ "email": "..." }` |
 | **POST** | `/api/v1/auth/password-reset` | Restablecer contraseña con el token del correo. | Body: `token`, `newPassword` |
+| **GET** | `/api/v1/auth/me` | Perfil del usuario autenticado. | — |
+| **PATCH** | `/api/v1/auth/me` | Actualizar datos personales (nombres, apellidos, domicilio, regionId, comunaId, avatarUrl). No incluye cambio de email. | Body: campos opcionales |
+| **POST** | `/api/v1/auth/me/request-email-change` | Solicitar cambio de correo. Envía token al nuevo email. Tras verificar (verify-new-email), cerrar sesión y login con nuevo correo. | Body: `{ "newEmail": "..." }`. Errores: SAME_EMAIL, EMAIL_IN_USE, EMAIL_SEND_FAILED. |
+| **GET** | `/api/v1/auth/verify-new-email` | Verificación de nuevo correo desde enlace. | Query: `token` |
+| **POST** | `/api/v1/auth/verify-new-email` | Verificación de nuevo correo desde cliente. | Body: `{ "token": "..." }` |
 
 ---
 
@@ -55,7 +60,7 @@ Prefijo de API: `/api/v1`
 | Módulo | Rutas |
 |--------|--------|
 | **General** | `GET /health`, `GET /api/v1/`, `GET /api/v1/ready` |
-| **Auth** | `POST /api/v1/auth/register`, `GET\|POST /api/v1/auth/verify-email`, `POST /api/v1/auth/resend-verify-email`, `POST /api/v1/auth/login`, `POST /api/v1/auth/verify-otp`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/password-recovery`, `POST /api/v1/auth/password-reset` |
+| **Auth** | Registro, verify-email, login, verify-otp, refresh, logout, password-recovery/reset; **perfil:** `GET/PATCH /api/v1/auth/me`, `POST /api/v1/auth/me/request-email-change`, `GET/POST /api/v1/auth/verify-new-email` |
 | **Catálogo** | `GET /api/v1/regions`, `GET /api/v1/comunas?regionId=uuid` |
 
 ---

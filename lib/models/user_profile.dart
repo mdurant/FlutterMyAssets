@@ -1,9 +1,12 @@
-/// Perfil del usuario (datos mostrados en Cuenta y para avatar).
+/// Perfil del usuario (GET/PATCH /auth/me: nombres, apellidos, domicilio, regionId, comunaId, avatarUrl, email solo lectura).
 class UserProfile {
   final String id;
   final String? email;
   final String? nombres;
   final String? apellidos;
+  final String? domicilio;
+  final String? regionId;
+  final String? comunaId;
   final String? avatarUrl;
 
   UserProfile({
@@ -11,6 +14,9 @@ class UserProfile {
     this.email,
     this.nombres,
     this.apellidos,
+    this.domicilio,
+    this.regionId,
+    this.comunaId,
     this.avatarUrl,
   });
 
@@ -27,6 +33,9 @@ class UserProfile {
       email: json['email']?.toString(),
       nombres: json['nombres']?.toString(),
       apellidos: json['apellidos']?.toString(),
+      domicilio: json['domicilio']?.toString(),
+      regionId: json['regionId']?.toString(),
+      comunaId: json['comunaId']?.toString(),
       avatarUrl: json['avatarUrl']?.toString(),
     );
   }
@@ -36,6 +45,9 @@ class UserProfile {
         'email': email,
         'nombres': nombres,
         'apellidos': apellidos,
+        'domicilio': domicilio,
+        'regionId': regionId,
+        'comunaId': comunaId,
         'avatarUrl': avatarUrl,
       };
 }
